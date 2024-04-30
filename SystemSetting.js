@@ -1,12 +1,14 @@
-import { NativeModules, NativeEventEmitter, Linking, Platform } from 'react-native'
+import { NativeModules, NativeEventEmitter, Linking, Platform, TurboModuleRegistry, DeviceEventEmitter } from 'react-native'
 
 import Utils from './Utils'
 
-const SystemSettingNative = NativeModules.SystemSetting
+const SystemSettingNative = TurboModuleRegistry ? TurboModuleRegistry.get('ReactNativeSystemSetting') : NativeModules.SystemSetting
 
 const SCREEN_BRIGHTNESS_MODE_UNKNOW = -1
 const SCREEN_BRIGHTNESS_MODE_MANUAL = 0
 const SCREEN_BRIGHTNESS_MODE_AUTOMATIC = 1
+
+const isHarmony = Platform.OS === 'harmony'
 
 const eventEmitter = new NativeEventEmitter(SystemSettingNative)
 
@@ -22,13 +24,23 @@ export default class SystemSetting {
     }
 
     static async getBrightness() {
-        return await SystemSettingNative.getBrightness()
+        if (!isHarmony) {
+            return await SystemSettingNative.getBrightness()
+        } else {
+            return await SystemSetting.getAppBrightness()
+        }
+
     }
 
     static async setBrightness(val) {
         try {
-            await SystemSettingNative.setBrightness(val)
-            return true
+            if (!isHarmony) {
+                await SystemSettingNative.setBrightness(val)
+                return true
+            } else {
+                await SystemSetting.setAppBrightness(val)
+            }
+
         } catch (e) {
             return false
         }
@@ -45,16 +57,16 @@ export default class SystemSetting {
     }
 
     static setAppBrightness(val) {
-        if (Utils.isAndroid) {
+        if (Utils.isAndroid || isHarmony) {
             SystemSettingNative.setAppBrightness(val)
         } else {
             SystemSetting.setBrightness(val)
         }
-        return true
+        return Promise.resolve(true)
     }
 
     static async getAppBrightness() {
-        if (Utils.isAndroid) {
+        if (Utils.isAndroid || isHarmony) {
             return SystemSettingNative.getAppBrightness()
         } else {
             return SystemSetting.getBrightness()
@@ -86,7 +98,7 @@ export default class SystemSetting {
     }
 
     static async setScreenMode(val) {
-        if (Utils.isAndroid) {
+        if (Utils.isAndroid || isHarmony) {
             try {
                 await SystemSettingNative.setScreenMode(val)
             } catch (e) {
@@ -97,22 +109,37 @@ export default class SystemSetting {
     }
 
     static async saveBrightness() {
-        SystemSetting.saveBrightnessVal = await SystemSetting.getBrightness()
-        SystemSetting.saveScreenModeVal = await SystemSetting.getScreenMode()
+        if (!isHarmony) {
+            SystemSetting.saveBrightnessVal = await SystemSetting.getBrightness()
+            SystemSetting.saveScreenModeVal = await SystemSetting.getScreenMode()
+        } else {
+            SystemSetting.saveBrightnessVal = await SystemSetting.getAppBrightness()
+        }
     }
 
     static restoreBrightness() {
         if (SystemSetting.saveBrightnessVal == -1) {
             console.warn('you should call saveBrightness() at least once')
         } else {
-            SystemSetting.setBrightness(SystemSetting.saveBrightnessVal)
-            SystemSetting.setScreenMode(SystemSetting.saveScreenModeVal)
+            if (!isHarmony) {
+                SystemSetting.setBrightness(SystemSetting.saveBrightnessVal)
+                SystemSetting.setScreenMode(SystemSetting.saveScreenModeVal)
+            } else {
+                SystemSettingNative.setAppBrightness(SystemSetting.saveBrightnessVal)
+            }
         }
         return SystemSetting.saveBrightnessVal
     }
 
     static async getVolume(type = 'music') {
-        return await SystemSettingNative.getVolume(type)
+        if (!isHarmony) {
+            return await SystemSettingNative.getVolume(type)
+        } else {
+            const vol = await SystemSettingNative.getVolume(type)
+            if (Object.prototype.toString.call(vol) === '[object Number]') {
+                return Math.round(vol / 15 * 100) / 100
+            }
+        }
     }
 
     static setVolume(val, config = {}) {
@@ -129,16 +156,31 @@ export default class SystemSetting {
     }
 
     static addVolumeListener(callback) {
-        return eventEmitter.addListener('EventVolume', callback)
+        if (!isHarmony) {
+            return eventEmitter.addListener('EventVolume', callback)
+        } else {
+            SystemSettingNative.addVolumeListener()
+            const obj =  DeviceEventEmitter.addListener('EventVolume', e => {
+                callback(e)
+            })
+            obj.type = 'volume'
+            return obj
+        }
     }
 
     static removeVolumeListener(listener) {
+        
         listener && listener.remove()
     }
 
     static async isWifiEnabled() {
         const result = await SystemSettingNative.isWifiEnabled()
-        return (result) > 0
+        if (!isHarmony) {
+            return (result) > 0
+        } else {
+            return result
+        }
+
     }
 
     static switchWifiSilence(complete) {
@@ -151,8 +193,12 @@ export default class SystemSetting {
     }
 
     static switchWifi(complete) {
-        SystemSetting.listenEvent(complete)
-        SystemSettingNative.switchWifi()
+        if (!isHarmony) {
+            SystemSetting.listenEvent(complete)
+            SystemSettingNative.switchWifi()
+        } else {
+            SystemSettingNative.switchWifi(complete)
+        }
     }
 
     static async isLocationEnabled() {
@@ -168,8 +214,12 @@ export default class SystemSetting {
     }
 
     static switchLocation(complete) {
-        SystemSetting.listenEvent(complete)
-        SystemSettingNative.switchLocation()
+        if (!isHarmony) {
+            SystemSetting.listenEvent(complete)
+            SystemSettingNative.switchLocation()
+        } else {
+            SystemSettingNative.switchLocation(complete)
+        }
     }
 
     static async isBluetoothEnabled() {
@@ -177,14 +227,21 @@ export default class SystemSetting {
     }
 
     static switchBluetooth(complete) {
-        SystemSetting.listenEvent(complete)
-        SystemSettingNative.switchBluetooth()
+        if (!isHarmony) {
+            SystemSetting.listenEvent(complete)
+            SystemSettingNative.switchBluetooth()
+        } else {
+            SystemSettingNative.switchBluetooth(complete)
+        }
+
     }
 
     static switchBluetoothSilence(complete) {
         if (Utils.isAndroid) {
             SystemSetting.listenEvent(complete)
             SystemSettingNative.switchBluetoothSilence()
+        } else if (isHarmony) {
+            SystemSettingNative.switchBluetoothSilence(complete)
         } else {
             SystemSettingNative.switchBluetooth(complete)
         }
@@ -200,24 +257,36 @@ export default class SystemSetting {
     }
 
     static async openAppSystemSettings() {
-        switch(Platform.OS) {
+        switch (Platform.OS) {
             case 'ios': {
                 const settingsLink = 'app-settings:';
                 const supported = await Linking.canOpenURL(settingsLink)
                 if (supported) await Linking.openURL(settingsLink);
                 break;
             }
-            case 'android': 
+            case 'android':
                 await SystemSettingNative.openAppSystemSettings()
+                break;
+            case 'harmony':
+                SystemSettingNative.openAppSystemSettings()
                 break;
             default:
                 throw new Error('unknown platform')
-                break;    
+                break;
         }
     }
 
     static async addBluetoothListener(callback) {
-        return await SystemSetting._addListener(false, 'bluetooth', 'EventBluetoothChange', callback)
+        if (!isHarmony) {
+            return await SystemSetting._addListener(false, 'bluetooth', 'EventBluetoothChange', callback)
+        } else {
+            SystemSettingNative.addBluetoothListener()
+            const obj =  DeviceEventEmitter.addListener('EventBluetooth', e => {
+                callback(e)
+            })
+            obj.type = 'bluetooth'
+            return obj
+        }
     }
 
     static async addWifiListener(callback) {
@@ -257,11 +326,19 @@ export default class SystemSetting {
     }
 
     static removeListener(listener) {
-        listener && listener.remove()
+        if (!isHarmony) {
+            listener && listener.remove()
+        } else {
+            if (listener.type === 'bluetooth') {
+                SystemSettingNative.removeListener('bluetooth')
+                listener && listener.remove()
+            }
+        }
+
     }
 
     static listenEvent(complete) {
-        if(!complete) return
+        if (!complete) return
 
         const listener = eventEmitter.addListener('EventEnterForeground', () => {
             listener.remove()
