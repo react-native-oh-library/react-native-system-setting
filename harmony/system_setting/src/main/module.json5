@@ -1,0 +1,9 @@
+{
+    "module": {
+        "name": "react_native_system_setting",
+        "type": "har",
+        "deviceTypes": [
+            "default"
+        ]
+    }
+}

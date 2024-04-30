@@ -1,6 +1,6 @@
 {
-    "name": "react-native-system-setting",
-    "version": "1.7.6",
+    "name": "@react-native-oh-tpl/react-native-system-setting",
+    "version": "1.7.6-0.0.1",
     "description": "provide some system setting APIs. Volume, brightness, wifi, location, bluetooth, airplane...",
     "main": "SystemSetting.js",
     "types": "SystemSetting.d.ts",
@@ -31,5 +31,13 @@
         "type": "git",
         "url": "https://github.com/c19354837/react-native-system-setting.git"
     },
-    "license": "MIT"
+    "license": "MIT",
+    "harmony": {
+        "codegenConfig": {
+            "specPaths": [
+                "./src"
+            ]
+        },
+        "alias": "react-native-system-setting"
+    }
 }
