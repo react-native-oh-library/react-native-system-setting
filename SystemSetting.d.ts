@@ -1,6 +1,6 @@
 export {};
 
-interface EmitterSubscription {
+export interface EmitterSubscription {
   remove: () => void;
 }
 

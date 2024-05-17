@@ -1,9 +1,0 @@
-{
-    "name": "react_native_system_setting",
-    "version": "1.0.0",
-    "description": "Please describe the basic information.",
-    "main": "Index.ets",
-    "author": "",
-    "license": "Apache-2.0",
-    "dependencies": {"@rnoh/react-native-openharmony": 'file:../react_native_openharmony'}
-}
