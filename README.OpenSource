@@ -1,0 +1,11 @@
+[
+    {
+        "Name": "react-native-system-setting",
+        "License": "MIT",
+        "License File": "https://github.com/c19354837/react-native-system-setting/blob/master/LICENSE.md",
+        "Version Number": "1.7.6",
+		"Owner" : "xiafeng@huawei.com",
+        "Upstream URL": "https://github.com/c19354837/react-native-system-setting",
+        "Description": "provide some system setting APIs. Volume, brightness, wifi, location, bluetooth, airplane..."
+    }
+]
