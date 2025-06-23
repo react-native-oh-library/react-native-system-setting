@@ -31,15 +31,26 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { audio } from '@kit.AudioKit';
 import wifiManager from '@ohos.wifiManager';
 import geoLocationManager from '@ohos.geoLocationManager';
+import abilityAccessCtrl, { Permissions } from '@ohos.abilityAccessCtrl';
 
 export class RNSystemSettingTurboModule extends TurboModule implements TM.ReactNativeSystemSetting.Spec {
   constructor(protected ctx: TurboModuleContext) {
     super(ctx)
     this.setWindowClass()
+    this.reqBluetoothPermissions()
   }
 
   private _windowClass: window.Window | undefined = undefined
   private _context: window.Window | undefined = undefined
+
+  private async reqBluetoothPermissions(): Promise<void> {
+    const permissions: Array<Permissions> = ['ohos.permission.ACCESS_BLUETOOTH'];
+    let atManager: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager();
+    atManager.requestPermissionsFromUser(this.ctx.uiAbilityContext, permissions).catch((err: BusinessError) => {
+      console.error(`Failed to request permissions from user. Code is ${err.code}, message is ${err.message}`);
+    })
+    return
+  }
 
   private async setWindowClass(): Promise<void> {
     let context = this.ctx.uiAbilityContext;
